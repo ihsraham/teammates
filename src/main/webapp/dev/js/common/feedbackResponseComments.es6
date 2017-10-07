@@ -13,17 +13,65 @@ import {
     richTextEditorBuilder,
 } from './richTextEditor.es6';
 
+const initialVisibilityOptions = new Map();
+
+function generateCheckboxKey(checkbox) {
+    return `${$(checkbox).attr('class')}-${$(checkbox).val()}`;
+}
+
+function saveInitialVisibilityOfCheckboxes(id, element) {
+    const tableInForm = element.find('table').first();
+    const checkboxesInForm = tableInForm.find('tr').find('input.visibilityCheckbox');
+    const valuesOfCheckbox = new Map();
+    $.each(checkboxesInForm, (i, checkboxInForm) => {
+        const checkboxKey = generateCheckboxKey(checkboxInForm);
+        valuesOfCheckbox.set(checkboxKey, $(checkboxInForm).prop('checked'));
+    });
+    initialVisibilityOptions.set(id, valuesOfCheckbox);
+}
+
+function getInitialVisibilityOfCheckboxes(e) {
+    return initialVisibilityOptions.get(e.attr('id'));
+}
+
+function getCheckBoxesInFormTable(form) {
+    const formTable = form.find('table').first();
+    return formTable.find('tr').find('input.visibilityCheckbox');
+}
+
+function restoreInitialVisibilityOfCheckboxes(form, e) {
+    const checkboxes = getCheckBoxesInFormTable(form);
+    const valueOfCheckboxes = getInitialVisibilityOfCheckboxes(e);
+    $.each(checkboxes, (i, checkbox) => {
+        const checkboxKey = generateCheckboxKey(checkbox);
+        $(checkbox).prop('checked', valueOfCheckboxes.get(checkboxKey));
+    });
+}
+
 function removeFormErrorMessage(submitButton) {
-    if (submitButton.next().next().attr('id') === 'errorMessage') {
+    if (submitButton.next().attr('class') === 'hide-frc-add-form'
+            && submitButton.next().next().attr('id') === 'errorMessage') {
         submitButton.next().next().remove();
+    }
+
+    if (submitButton.next().attr('id') === 'errorMessage') {
+        submitButton.next().remove();
     }
 }
 
 function setFormErrorMessage(submitButton, msg) {
-    if (submitButton.next().next().attr('id') === 'errorMessage') {
-        submitButton.next().next().text(msg);
+    if (submitButton.next().attr('class') === 'hide-frc-add-form') {
+        if (submitButton.next().next().attr('id') === 'errorMessage') {
+            submitButton.next().next().text(msg);
+        } else {
+            submitButton.next().after(`<span id="errorMessage" class="pull-right "> ${msg}</span>`);
+        }
+    }
+
+    if (submitButton.next().attr('id') === 'errorMessage') {
+        submitButton.next().text(msg);
     } else {
-        submitButton.next().after(`<span id="errorMessage" class="pull-right "> ${msg}</span>`);
+        submitButton.after(`<span id="errorMessage" class="pull-right "> ${msg}</span>`);
     }
 }
 
@@ -85,14 +133,6 @@ function updateVisibilityOptionsForResponseComment(formObject, data) {
 function deleteCommentRow(submitButton) {
     const deletedCommentRow = submitButton.closest('li');
     const frCommentList = submitButton.closest('.comments');
-
-    const numberOfItemInFrCommentList = deletedCommentRow.parent().children('li');
-    if (numberOfItemInFrCommentList.length <= 2) {
-        deletedCommentRow.parent().hide();
-    }
-    if (frCommentList.find('li').length <= 1) {
-        frCommentList.hide();
-    }
     deletedCommentRow.remove();
     frCommentList.parent().find('div.delete_error_msg').remove();
 }
@@ -107,6 +147,141 @@ function showErrorMessage(errorMessage, submitButton) {
         frCommentList.after(`<div class="delete_error_msg alert alert-danger">${errorMessage}</div>`);
     }
     submitButton.html('<span class="glyphicon glyphicon-trash glyphicon-primary"></span>');
+}
+
+function enableHoverToDisplayEditOptions() {
+    // show on hover for comment
+    $('body').on('mouseenter', '.comments > .list-group-item', function () {
+        $('div[id|="commentBar"] a[type="button"]', this).show();
+    });
+
+    $('body').on('mouseleave', '.comments > .list-group-item', function () {
+        $('div[id|="commentBar"] a[type="button"]', this).hide();
+    });
+}
+
+function showResponseCommentAddForm(recipientIndex, giverIndex, qnIndex, sectionIndex) {
+    const id = `${sectionIndex !== undefined ? `-${sectionIndex}` : ''}-${recipientIndex}-${giverIndex}-${qnIndex}`;
+
+    $(`#responseCommentTable${id}`).show();
+    if ($(`#responseCommentTable${id} > li`).length <= 1) {
+        $(`#responseCommentTable${id}`).css('margin-top', '15px');
+    }
+    $(`#showResponseCommentAddForm${id}`).show();
+
+    $(`#responseCommentAddForm${id}`).empty();
+
+    if (typeof richTextEditorBuilder !== 'undefined') {
+        /* eslint-disable camelcase */ // The property names are determined by external library (tinymce)
+        richTextEditorBuilder.initEditor(`#responseCommentAddForm${id}`, {
+            inline: true,
+        });
+        /* eslint-enable camelcase */
+    }
+    saveInitialVisibilityOfCheckboxes(`showResponseCommentAddForm${id}`,
+            $(`#showResponseCommentAddForm${id}`).children('.responseCommentAddForm'));
+    $(`#responseCommentAddForm${id}`).focus();
+}
+
+function hideResponseCommentAddForm(recipientIndex, giverIndex, qnIndex, sectionIndex) {
+    const id = `${sectionIndex !== undefined ? `-${sectionIndex}` : ''}-${recipientIndex}-${giverIndex}-${qnIndex}`;
+
+    if ($(`#responseCommentTable${id} > li`).length <= 1) {
+        $(`#responseCommentTable${id}`).css('margin-top', '0');
+        $(`#responseCommentTable${id}`).hide();
+    }
+    restoreInitialVisibilityOfCheckboxes(
+            $(`#showResponseCommentAddForm${id} > form`), $(`#showResponseCommentAddForm${id}`));
+    $(`#showResponseCommentAddForm${id}`).hide();
+    removeFormErrorMessage($(`#button_save_comment_for_add${id}`));
+}
+
+function showResponseCommentEditForm(recipientIndex, giverIndex, qnIndex, commentIndex, sectionIndex, viewType) {
+    let id;
+
+    if (`${sectionIndex}` !== 'undefined') {
+        id = `-${sectionIndex}-${recipientIndex}-${giverIndex}-${qnIndex}-${commentIndex}`;
+    } else if (`${viewType}` !== 'undefined') {
+        id = `-${viewType}-${recipientIndex}-${giverIndex}-${qnIndex}-${commentIndex}`;
+    } else {
+        id = `-${recipientIndex}-${giverIndex}-${qnIndex}-${commentIndex}`;
+    }
+
+    const $commentBar = $(`#plainCommentText${id}`).parent().find(`#commentBar${id}`);
+    $commentBar.hide();
+    $(`#plainCommentText${id}`).hide();
+    $(`#responseCommentEditForm${id} > div > textarea`).val($(`#plainCommentText${id}`).text());
+    $(`#responseCommentEditForm${id}`).show();
+    $(`#responseCommentEditForm${id} > div > textarea`).focus();
+    saveInitialVisibilityOfCheckboxes(`responseCommentEditForm${id}`, $(`#responseCommentEditForm${id}`));
+    if (typeof richTextEditorBuilder !== 'undefined') {
+        if (tinymce.get(`responsecommenttext${id}`)) {
+            return;
+        }
+        /* eslint-disable camelcase */ // The property names are determined by external library (tinymce)
+        richTextEditorBuilder.initEditor(`#responsecommenttext${id}`, {
+            inline: true,
+        });
+        /* eslint-enable camelcase */
+    }
+}
+
+function toggleVisibilityAddForm(recipientIndex, giverIndex, qnIndex, sectionIndex) {
+    const id = `${sectionIndex !== undefined ? `-${sectionIndex}` : ''}-${recipientIndex}-${giverIndex}-${qnIndex}`;
+
+    const $visibilityEditForm = $(`#visibility-options${id}`);
+    if ($visibilityEditForm.is(':visible')) {
+        $visibilityEditForm.hide();
+        $(`#frComment-visibility-options-trigger${id}`)
+                .html('<span class="glyphicon glyphicon-eye-close"></span> Show Visibility Options');
+    } else {
+        $visibilityEditForm.show();
+        $(`#frComment-visibility-options-trigger${id}`)
+                .html('<span class="glyphicon glyphicon-eye-close"></span> Hide Visibility Options');
+    }
+}
+
+function toggleVisibilityEditForm(recipientIndex, giverIndex, qnIndex, commentIndex, sectionIndex, viewType) {
+    let id;
+
+    if (`${sectionIndex}` !== 'undefined') {
+        id = `-${sectionIndex}-${recipientIndex}-${giverIndex}-${qnIndex}-${commentIndex}`;
+    } else if (`${viewType}` !== 'undefined') {
+        id = `-${viewType}-${recipientIndex}-${giverIndex}-${qnIndex}-${commentIndex}`;
+    } else {
+        id = `-${recipientIndex}-${giverIndex}-${qnIndex}-${commentIndex}`;
+    }
+
+    const $visibilityEditForm = $(`#visibility-options${id}`);
+    if ($visibilityEditForm.is(':visible')) {
+        $visibilityEditForm.hide();
+        $(`#frComment-visibility-options-trigger${id}`)
+                .html('<span class="glyphicon glyphicon-eye-close"></span> Show Visibility Options');
+    } else {
+        $visibilityEditForm.show();
+        $(`#frComment-visibility-options-trigger${id}`)
+                .html('<span class="glyphicon glyphicon-eye-close"></span> Hide Visibility Options');
+    }
+}
+
+function hideResponseCommentEditForm(recipientIndex, giverIndex, qnIndex, commentIndex, sectionIndex, viewType) {
+    let id;
+
+    if (`${sectionIndex}` !== 'undefined') {
+        id = `-${sectionIndex}-${recipientIndex}-${giverIndex}-${qnIndex}-${commentIndex}`;
+    } else if (`${viewType}` !== 'undefined') {
+        id = `-${viewType}-${recipientIndex}-${giverIndex}-${qnIndex}-${commentIndex}`;
+    } else {
+        id = `-${recipientIndex}-${giverIndex}-${qnIndex}-${commentIndex}`;
+    }
+
+    const $commentBar = $(`#plainCommentText${id}`).parent().find(`#commentBar${id}`);
+    $commentBar.show();
+    $(`#plainCommentText${id}`).show();
+    restoreInitialVisibilityOfCheckboxes($(`#responseCommentEditForm${id}`), $(`#responseCommentEditForm${id}`));
+    $(`#responseCommentEditForm${id}`).hide();
+    tinymce.get(`responsecommenttext${id}`).setContent($(`#plainCommentText${id}`).text());
+    removeFormErrorMessage($(`#button_save_comment_for_edit${id}`));
 }
 
 const addCommentHandler = (e) => {
@@ -126,6 +301,8 @@ const addCommentHandler = (e) => {
     formObject.find('input[name=responsecommenttext]').val(editor.getContent());
 
     const formData = formObject.serialize();
+    const isOnQuestionsPage = formObject.find('input[name=isOnQuestionsPage]').val();
+    restoreInitialVisibilityOfCheckboxes($(formObject), $(addFormRow));
 
     $.ajax({
         type: 'POST',
@@ -154,7 +331,9 @@ const addCommentHandler = (e) => {
                 // Inject new comment row
                 addFormRow.parent().attr('class', 'list-group');
                 addFormRow.before(data);
-                removeUnwantedVisibilityOptions(commentId);
+                if (isOnQuestionsPage == null) {
+                    removeUnwantedVisibilityOptions(commentId);
+                }
 
                 // Reset add comment form
                 formObject.find('textarea').prop('disabled', false);
@@ -166,6 +345,13 @@ const addCommentHandler = (e) => {
                 addFormRow.prev().show();
                 addFormRow.hide();
                 destroyEditor(`responseCommentAddForm-${responseCommentId}`);
+                if (isOnQuestionsPage != null && isOnQuestionsPage) {
+                    const indexes = responseCommentId.split('-');
+                    const recipientIndex = indexes[0];
+                    const giverIndex = indexes[1];
+                    const questionIndex = indexes[2];
+                    showResponseCommentAddForm(recipientIndex, giverIndex, questionIndex);
+                }
             }
         },
     });
@@ -212,6 +398,7 @@ const editCommentHandler = (e) => {
                 // Update editted comment
                 displayedText.html(data.comment.commentText.value);
                 updateVisibilityOptionsForResponseComment(formObject, data);
+                commentBar.find('span[class="text-muted"]').first().text(data.editedCommentDetails);
                 commentBar.show();
 
                 // Reset edit comment form
@@ -229,13 +416,25 @@ const editCommentHandler = (e) => {
     });
 };
 
+function fadeOutCommentModalIfPresent() {
+    $('div[id^="commentModal"]').removeClass('in');
+    $('div[id^="commentModal"]').addClass('out');
+}
+
+function fadeInCommentModalIfPresent() {
+    $('div[id^="commentModal"]').removeClass('out');
+    $('div[id^="commentModal"]').addClass('in');
+}
+
 const deleteCommentHandler = (e) => {
     const submitButton = $(e.currentTarget);
     e.preventDefault();
+    fadeOutCommentModalIfPresent();
 
     showModalConfirmation('Confirm deletion', 'Are you sure you want to remove this comment?', () => {
         const formObject = submitButton.parent();
         const formData = formObject.serialize();
+        fadeInCommentModalIfPresent();
 
         $.ajax({
             type: 'POST',
@@ -254,138 +453,12 @@ const deleteCommentHandler = (e) => {
                 }
             },
         });
-    }, null, null, null, StatusType.WARNING);
+    }, fadeInCommentModalIfPresent, null, null, StatusType.WARNING);
+
+    $('.bootbox-close-button').click(() => {
+        fadeInCommentModalIfPresent();
+    });
 };
-
-function enableHoverToDisplayEditOptions() {
-    // show on hover for comment
-    $('body').on('mouseenter', '.comments > .list-group-item', function () {
-        $('div[id|="commentBar"] a[type="button"]', this).show();
-    });
-
-    $('body').on('mouseleave', '.comments > .list-group-item', function () {
-        $('div[id|="commentBar"] a[type="button"]', this).hide();
-    });
-}
-
-function showResponseCommentAddForm(recipientIndex, giverIndex, qnIndex, sectionIndex) {
-    const id = `${sectionIndex !== undefined ? `-${sectionIndex}` : ''}-${recipientIndex}-${giverIndex}-${qnIndex}`;
-
-    $(`#responseCommentTable${id}`).show();
-    if ($(`#responseCommentTable${id} > li`).length <= 1) {
-        $(`#responseCommentTable${id}`).css('margin-top', '15px');
-    }
-    $(`#showResponseCommentAddForm${id}`).show();
-
-    $(`#responseCommentAddForm${id}`).empty();
-
-    if (typeof richTextEditorBuilder !== 'undefined') {
-        /* eslint-disable camelcase */ // The property names are determined by external library (tinymce)
-        richTextEditorBuilder.initEditor(`#responseCommentAddForm${id}`, {
-            inline: true,
-        });
-        /* eslint-enable camelcase */
-    }
-
-    $(`#responseCommentAddForm${id}`).focus();
-}
-
-function hideResponseCommentAddForm(recipientIndex, giverIndex, qnIndex, sectionIndex) {
-    const id = `${sectionIndex !== undefined ? `-${sectionIndex}` : ''}-${recipientIndex}-${giverIndex}-${qnIndex}`;
-
-    if ($(`#responseCommentTable${id} > li`).length <= 1) {
-        $(`#responseCommentTable${id}`).css('margin-top', '0');
-        $(`#responseCommentTable${id}`).hide();
-    }
-    $(`#showResponseCommentAddForm${id}`).hide();
-    removeFormErrorMessage($(`#button_save_comment_for_add${id}`));
-}
-
-function showResponseCommentEditForm(recipientIndex, giverIndex, qnIndex, commentIndex, sectionIndex, viewType) {
-    let id;
-
-    if (`${sectionIndex}` !== 'undefined') {
-        id = `-${sectionIndex}-${recipientIndex}-${giverIndex}-${qnIndex}-${commentIndex}`;
-    } else if (`${viewType}` !== 'undefined') {
-        id = `-${viewType}-${recipientIndex}-${giverIndex}-${qnIndex}-${commentIndex}`;
-    } else {
-        id = `-${recipientIndex}-${giverIndex}-${qnIndex}-${commentIndex}`;
-    }
-
-    const commentBar = $(`#plainCommentText${id}`).parent().find(`#commentBar${id}`);
-    commentBar.hide();
-    $(`#plainCommentText${id}`).hide();
-    $(`#responseCommentEditForm${id} > div > textarea`).val($(`#plainCommentText${id}`).text());
-    $(`#responseCommentEditForm${id}`).show();
-    $(`#responseCommentEditForm${id} > div > textarea`).focus();
-
-    if (typeof richTextEditorBuilder !== 'undefined') {
-        if (tinymce.get(`responsecommenttext${id}`)) {
-            return;
-        }
-        /* eslint-disable camelcase */ // The property names are determined by external library (tinymce)
-        richTextEditorBuilder.initEditor(`#responsecommenttext${id}`, {
-            inline: true,
-        });
-        /* eslint-enable camelcase */
-    }
-}
-
-function toggleVisibilityAddForm(recipientIndex, giverIndex, qnIndex, sectionIndex) {
-    const id = `${sectionIndex !== undefined ? `-${sectionIndex}` : ''}-${recipientIndex}-${giverIndex}-${qnIndex}`;
-
-    const visibilityEditForm = $(`#visibility-options${id}`);
-    if (visibilityEditForm.is(':visible')) {
-        visibilityEditForm.hide();
-        $(`#frComment-visibility-options-trigger${id}`)
-            .html('<span class="glyphicon glyphicon-eye-close"></span> Show Visibility Options');
-    } else {
-        visibilityEditForm.show();
-        $(`#frComment-visibility-options-trigger${id}`)
-            .html('<span class="glyphicon glyphicon-eye-close"></span> Hide Visibility Options');
-    }
-}
-
-function toggleVisibilityEditForm(recipientIndex, giverIndex, qnIndex, commentIndex, sectionIndex, viewType) {
-    let id;
-
-    if (`${sectionIndex}` !== 'undefined') {
-        id = `-${sectionIndex}-${recipientIndex}-${giverIndex}-${qnIndex}-${commentIndex}`;
-    } else if (`${viewType}` !== 'undefined') {
-        id = `-${viewType}-${recipientIndex}-${giverIndex}-${qnIndex}-${commentIndex}`;
-    } else {
-        id = `-${recipientIndex}-${giverIndex}-${qnIndex}-${commentIndex}`;
-    }
-
-    const visibilityEditForm = $(`#visibility-options${id}`);
-    if (visibilityEditForm.is(':visible')) {
-        visibilityEditForm.hide();
-        $(`#frComment-visibility-options-trigger${id}`)
-            .html('<span class="glyphicon glyphicon-eye-close"></span> Show Visibility Options');
-    } else {
-        visibilityEditForm.show();
-        $(`#frComment-visibility-options-trigger${id}`)
-            .html('<span class="glyphicon glyphicon-eye-close"></span> Hide Visibility Options');
-    }
-}
-
-function hideResponseCommentEditForm(recipientIndex, giverIndex, qnIndex, commentIndex, sectionIndex, viewType) {
-    let id;
-
-    if (`${sectionIndex}` !== 'undefined') {
-        id = `-${sectionIndex}-${recipientIndex}-${giverIndex}-${qnIndex}-${commentIndex}`;
-    } else if (`${viewType}` !== 'undefined') {
-        id = `-${viewType}-${recipientIndex}-${giverIndex}-${qnIndex}-${commentIndex}`;
-    } else {
-        id = `-${recipientIndex}-${giverIndex}-${qnIndex}-${commentIndex}`;
-    }
-
-    const commentBar = $(`#plainCommentText${id}`).parent().find(`#commentBar${id}`);
-    commentBar.show();
-    $(`#plainCommentText${id}`).show();
-    $(`#responseCommentEditForm${id}`).hide();
-    removeFormErrorMessage($(`#button_save_comment_for_edit${id}`));
-}
 
 function registerResponseCommentsEvent() {
     $('body').on('click', 'form[class*="responseCommentAddForm"] > div > a[id^="button_save_comment_for_add"]',
@@ -402,7 +475,13 @@ function registerResponseCommentsEvent() {
             '.show-frc-edit-form', [showResponseCommentEditForm,
                     ['recipientindex', 'giverindex', 'qnindex', 'frcindex', 'sectionindex', 'viewtype']]);
     clickHandlerMap.set(
+            '.comment-button', [showResponseCommentAddForm,
+                    ['recipientindex', 'giverindex', 'qnindex', 'sectionindex']]);
+    clickHandlerMap.set(
             '.hide-frc-add-form', [hideResponseCommentAddForm,
+                    ['recipientindex', 'giverindex', 'qnindex', 'sectionindex']]);
+    clickHandlerMap.set(
+            '.commentModalClose', [hideResponseCommentAddForm,
                     ['recipientindex', 'giverindex', 'qnindex', 'sectionindex']]);
     clickHandlerMap.set(
             '.hide-frc-edit-form', [hideResponseCommentEditForm,

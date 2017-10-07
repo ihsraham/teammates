@@ -7,6 +7,7 @@ import java.util.Map;
 
 import com.google.appengine.api.datastore.Text;
 
+import teammates.common.datatransfer.CourseDetailsBundle;
 import teammates.common.datatransfer.FeedbackParticipantType;
 import teammates.common.datatransfer.attributes.AccountAttributes;
 import teammates.common.datatransfer.attributes.FeedbackQuestionAttributes;
@@ -33,16 +34,19 @@ public class InstructorFeedbackEditPageData extends PageData {
     private FeedbackQuestionEditForm newQnForm;
     private FeedbackSessionPreviewForm previewForm;
     private String statusForAjax;
+    private boolean shouldLoadInEditMode;
     private boolean hasError;
+    private CourseDetailsBundle courseDetails;
+    private int numOfInstructors;
 
     public InstructorFeedbackEditPageData(AccountAttributes account, String sessionToken) {
         super(account, sessionToken);
     }
 
     public void init(FeedbackSessionAttributes feedbackSession, List<FeedbackQuestionAttributes> questions,
-                     Map<String, Boolean> questionHasResponses,
-                     List<StudentAttributes> studentList, List<InstructorAttributes> instructorList,
-                     InstructorAttributes instructor) {
+                     Map<String, Boolean> questionHasResponses, List<StudentAttributes> studentList,
+                     List<InstructorAttributes> instructorList, InstructorAttributes instructor,
+                     boolean shouldLoadInEditMode, int numOfInstructors, CourseDetailsBundle courseDetails) {
         Assumption.assertNotNull(feedbackSession);
 
         buildFsForm(feedbackSession);
@@ -55,9 +59,14 @@ public class InstructorFeedbackEditPageData extends PageData {
                                       instructor.courseId, question, i + 1);
         }
 
+        this.courseDetails = courseDetails;
+        // numOfInstructors can be different from instructorList.size()
+        this.numOfInstructors = numOfInstructors;
+
         buildNewQuestionForm(feedbackSession, questions.size() + 1);
 
         buildPreviewForm(feedbackSession, studentList, instructorList);
+        this.shouldLoadInEditMode = shouldLoadInEditMode;
 
     }
 
@@ -322,6 +331,14 @@ public class InstructorFeedbackEditPageData extends PageData {
         return results;
     }
 
+    public CourseDetailsBundle getCourseDetails() {
+        return courseDetails;
+    }
+
+    public int getNumOfInstructors() {
+        return numOfInstructors;
+    }
+
     public FeedbackSessionsForm getFsForm() {
         return fsForm;
     }
@@ -361,5 +378,9 @@ public class InstructorFeedbackEditPageData extends PageData {
 
     public void setHasError(boolean value) {
         this.hasError = value;
+    }
+
+    public boolean getShouldLoadInEditMode() {
+        return shouldLoadInEditMode;
     }
 }

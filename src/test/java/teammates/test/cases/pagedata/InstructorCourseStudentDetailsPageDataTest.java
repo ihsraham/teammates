@@ -86,7 +86,12 @@ public class InstructorCourseStudentDetailsPageDataTest extends BaseTestCase {
         String team = "TeamForJohnDoe";
         String section = "SectionForJohnDoe";
 
-        inputStudent = new StudentAttributes(null, email, name, comments, courseId, team, section);
+        inputStudent = StudentAttributes
+                .builder(courseId, name, email)
+                .withSection(section)
+                .withTeam(team)
+                .withComments(comments)
+                .build();
     }
 
     private void createStudentProfile(String email, String pictureKey) {
@@ -104,8 +109,15 @@ public class InstructorCourseStudentDetailsPageDataTest extends BaseTestCase {
                             + Const.ParamsNames.USER_ID + "=null";
         }
 
-        inputStudentProfile = new StudentProfileAttributes(
-                null, shortName, email, institute, nationality, gender, moreInfo, pictureKey);
+        inputStudentProfile = StudentProfileAttributes.builder()
+                .withShortName(shortName)
+                .withEmail(email)
+                .withInstitute(institute)
+                .withNationality(nationality)
+                .withGender(gender)
+                .withMoreInfo(moreInfo)
+                .withPictureKey(pictureKey)
+                .build();
     }
 
     private InstructorCourseStudentDetailsPageData createData() {

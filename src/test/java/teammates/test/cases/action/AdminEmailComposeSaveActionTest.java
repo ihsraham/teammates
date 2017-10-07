@@ -21,6 +21,7 @@ public class AdminEmailComposeSaveActionTest extends BaseActionTest {
 
     @Override
     protected void prepareTestData() {
+        super.prepareTestData();
         dataBundle = loadDataBundle("/AdminEmailComposePageTest.json");
         removeAndRestoreDataBundle(dataBundle);
     }
@@ -268,7 +269,7 @@ public class AdminEmailComposeSaveActionTest extends BaseActionTest {
         expectedLogSegment = Const.ACTION_RESULT_FAILURE;
         AssertHelper.assertContains(expectedLogSegment, action.getLogMessage());
 
-        expectedStatus = "\"\" is not acceptable to TEAMMATES as a/an email subject";
+        expectedStatus = "The field 'email subject' is empty.";
         AssertHelper.assertContains(expectedStatus, pageResult.getStatusMessage());
 
         data = (AdminEmailComposePageData) pageResult.data;
@@ -300,7 +301,9 @@ public class AdminEmailComposeSaveActionTest extends BaseActionTest {
     }
 
     @Override
+    @Test
     protected void testAccessControl() throws Exception {
-        //TODO: implement this
+        String[] submissionParams = new String[]{};
+        verifyOnlyAdminsCanAccess(submissionParams);
     }
 }

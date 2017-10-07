@@ -13,7 +13,7 @@ This is the project-wide development workflow for TEAMMATES.
 
 * This workflow is an adaptation of the [GitHub flow](https://guides.github.com/introduction/flow/).
 * If you need any help regarding the workflow, please [post a new issue in our issue tracker](https://github.com/TEAMMATES/teammates/issues/new).
-* It is assumed that the development environment has been correctly set up. If this step has not been completed, refer to [this document](settingUp.md).<br>
+* It is assumed that the development environment has been correctly set up. If this step has not been completed, refer to [this document](setting-up.md).<br>
   You are also encouraged to be reasonably familiar with how to [work with your own local copy of TEAMMATES](development.md).
 
 The following are the roles involved:
@@ -86,7 +86,7 @@ Make the changes to the code, tests, and documentations as needed by the issue.
      ```sh
      git checkout master
      git pull
-     git checkout -b 3942-remove-unnecessary-println
+     git checkout 3942-remove-unnecessary-println
      ```
    * Option 1: merge those updates to the branch you are working on.
 

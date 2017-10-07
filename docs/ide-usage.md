@@ -5,7 +5,7 @@
 
 ## Eclipse IDE
 
-> - Replace all references of `Eclipse → Preferences → ...` to `Window → Preferences → ...` if you are using Windows.
+> - Replace all references of `Eclipse → Preferences → ...` to `Window → Preferences → ...` if you are using Windows or Linux.
 > - If you worry that these settings will interfere with your other projects, you can use a separate Eclipse instance for TEAMMATES.
 
 Supported Eclipse versions: [Eclipse IDE for Java EE Developers version Luna, Mars, or Neon](http://www.eclipse.org/downloads/).
@@ -43,7 +43,7 @@ The following plugins are needed:
    * Set the `root directory` to the location where the repo is cloned.
    * Click `Finish`.
 
-1. Configure the following project-specific settings (all can be found in `Project → Properties → ...`):
+1. Configure the following project-specific settings (all can be found in `Project → Properties → ...`, except for the HTML, CSS and XML settings which can be found in `Eclipse → Preferences → ...`):
    * Text encoding: `Resources` → change the `Text file encoding` setting from `Default` to `Other: UTF-8`.
 
      ![setupguide-4.png](images/setupguide-4.png)
@@ -64,18 +64,23 @@ The following plugins are needed:
      Configure for all the languages used in TEAMMATES:
      * Java: `Java → Code Style → Formatter → Edit → Tab policy → Spaces only`.
      * JavaScript: `JavaScript → Code Style → Formatter → Edit → Tab policy → Spaces only`.
+     
+     You can find the Web and XML options in `Eclipse → Preferences → ...`.
      * HTML: `Web → HTML Files → Editor → Indent using spaces`.
      * CSS: `Web → CSS Files → Editor → Indent using spaces`.
      * XML: `XML → XML Files → Editor → Indent using spaces`.
    * Validation:
      * We do not validate HTML, JSP, and XML. `Validation` → uncheck the `Build` option for `HTML Syntax Validator`, `JSP Content Validator`, `JSP Syntax Validator`, and `XML Validator`.
      * Disable JavaScript validation for `node_modules` folder. `Validation` → click the `...` settings button for `JavaScript Validation` → if `Exclude Group` is not already in the list then click `Add Exclude Group...` → `Exclude Group` → `Add Rule...` → `Folder or file name` → `Next` → `Browse Folder...` → navigate to the `node_modules` folder and confirm → `Finish`.
+	 * Disable JSON validation for `node_modules` folder. `Validation` → click the `...` settings button for `JSON Validator` → if `Exclude Group` is not already in the list then click `Add Exclude Group...` → `Exclude Group` → `Add Rule...` → `Folder or file name` → `Next` → `Browse Folder...` → navigate to the `node_modules` folder and confirm → `Finish`.
 
 1. `Clean` the project for all changes to take effect. Ensure that there are no errors. Warnings are generally fine and can be ignored.
 
    ![setupguide-6.png](images/setupguide-6.png)
 
-1. To set up some static analysis tools, refer to [this document](staticAnalysis.md).
+1. To set up some static analysis tools, refer to [this document](static-analysis.md).
+
+1. To move on to the development phase, refer to [this document](development.md)
 
 ## IntelliJ IDEA
 
@@ -113,7 +118,7 @@ You can sign up for the free [JetBrains student license](https://www.jetbrains.c
        If you currently have projects open, click `File → Settings` or `IntelliJ IDEA → Preferences`.
     1. Go to `Build, Execution, Deployment → Application Servers`.
     1. Click `+ → Google App Engine Dev Server → ... `. Select the App Engine SDK (`appengine-java-sdk-<version>` sub-folder)
-       you downloaded in Step 3 of the [Setting up a development environment](settingUp.md) guide.
+       you downloaded in Step 3 of the [Setting up a development environment](setting-up.md) guide.
     1. Ensure the `Name:` is of `AppEngine Dev <version>`.
 
 ### Automated Setup
@@ -127,7 +132,9 @@ If you do not wish to use the automated setup, you can follow the [manual setup]
 
 1. You can now open the project in IntelliJ IDEA.
 
-1. To set up some static analysis tools, refer to [this document](staticAnalysis.md).
+1. To set up some static analysis tools, refer to [this document](static-analysis.md).
+
+1. To move on to the development phase, refer to [this document](development.md).
 
 **NOTE**
 >The behavior of the automated setup is described [here](intellij-automated-setup-behavior.md#project-setup-behavior).
@@ -187,4 +194,6 @@ If you do not wish to use the automated setup, you can follow the [manual setup]
    ./gradlew setupIntellijRunConfigs
    ```
 
-1. To set up some static analysis tools, refer to [this document](staticAnalysis.md).
+1. To set up some static analysis tools, refer to [this document](static-analysis.md).
+
+1. To move on to the development phase, refer to [this document](development.md).

@@ -54,8 +54,8 @@
   </form>
   <br>
   <div id="statusMessagesToUser">
-    <div class="overflow-auto alert alert-danger statusMessage">
-      "" is not acceptable to TEAMMATES as a/an course name because it is empty. The value of a/an course name should be no longer than 64 characters. It should not be empty.
+    <div class="overflow-auto alert alert-danger icon-danger statusMessage">
+      The field 'course name' is empty. The value of a/an course name should be no longer than 64 characters. It should not be empty.
     </div>
   </div>
   <script defer="" src="/js/statusMessage.js" type="text/javascript">
@@ -75,6 +75,11 @@
           </th>
           <th class="button-sort-none toggle-sort" id="button_sortcoursename">
             Course Name
+            <span class="icon-sort unsorted">
+            </span>
+          </th>
+          <th class="button-sort-none toggle-sort" data-toggle-sort-comparator="sortDate" data-toggle-sort-extractor="dateStampExtractor" id="button_sortcoursecreateddate">
+            Creation Date
             <span class="icon-sort unsorted">
             </span>
           </th>
@@ -102,6 +107,9 @@
           </td>
           <td id="coursename2">
             Software Engineering $^&*()
+          </td>
+          <td data-date-stamp="${datetime.now.iso8601utc}" data-original-title="${datetime.now}" data-toggle="tooltip" id="coursecreateddate2">
+            ${datetime.now.courses}
           </td>
           <td id="course-stats-sectionNum-2">
             <a class="course-stats-link-2" href="/page/courseStatsPage?courseid=CCAddUiTest.course1&user=CCAddUiTest.instructor" oncontextmenu="return false;">
@@ -148,6 +156,9 @@
           <td id="coursename0">
             Programming Methodology
           </td>
+          <td data-date-stamp="${datetime.now.iso8601utc}" data-original-title="${datetime.now}" data-toggle="tooltip" id="coursecreateddate0">
+            ${datetime.now.courses}
+          </td>
           <td id="course-stats-sectionNum-0">
             <a class="course-stats-link-0" href="/page/courseStatsPage?courseid=CCAddUiTest.CS1101&user=CCAddUiTest.instructor" oncontextmenu="return false;">
               Show
@@ -192,6 +203,9 @@
           </td>
           <td id="coursename1">
             Programming Language Concept
+          </td>
+          <td data-date-stamp="${datetime.now.iso8601utc}" data-original-title="${datetime.now}" data-toggle="tooltip" id="coursecreateddate1">
+            ${datetime.now.courses}
           </td>
           <td id="course-stats-sectionNum-1">
             <a class="course-stats-link-1" href="/page/courseStatsPage?courseid=CCAddUiTest.CS2104&user=CCAddUiTest.instructor" oncontextmenu="return false;">

@@ -41,9 +41,17 @@ const FEEDBACK_RESPONSE_RECIPIENT = 'responserecipient';
 const FEEDBACK_RESPONSE_TEXT = 'responsetext';
 const FEEDBACK_MISSING_RECIPIENT = 'You did not specify a recipient for your response in question(s)';
 const WARNING_STATUS_MESSAGE = '.alert-warning.statusMessage';
+const SUCCESS_STATUS_MESSAGE = '.alert-success.statusMessage';
+const END_TIME = '#end-time';
+const MS_IN_FIFTEEN_MINUTES = 900000;
 
 // text displayed to user
 const SESSION_NOT_OPEN = 'Feedback Session Not Open';
+const SESSION_CLOSING_HEADER = 'Feedback Session Will Be Closing Soon';
+const SESSION_CLOSING_MESSAGE = 'Warning: you have less than 15 minutes before the submission deadline expires!';
+const RESPONSES_SUCCESSFULLY_SUBMITTED = '<p>All your responses have been successfully recorded! '
+        + 'You may now leave this page.</p>'
+        + '<p>Note that you can change your responses and submit them again any time before the session closes.</p>';
 
 function isPreview() {
     return $(document).find('.navbar').text().indexOf('Preview') !== -1;
@@ -160,16 +168,17 @@ function prepareMCQQuestions() {
             });
 
             radioButtons[id].click(function (event) {
-                const val = $(this).val();
-                const name = $(this).attr('name');
+                const $self = $(this);
+                const val = $self.val();
+                const name = $self.attr('name');
                 const indexSuffix = name.substring(name.indexOf('-'));
 
                 // toggle the radio button checked state
-                $(this).attr('checked', radioStates[name][val] = !radioStates[name][val]);
+                $self.attr('checked', radioStates[name][val] = !radioStates[name][val]);
 
                 // If the radio button corresponding to 'Other' is clicked
-                if ($(this).data('text') === 'otherOptionText') {
-                    if ($(this).is(':checked')) {
+                if ($self.data('text') === 'otherOptionText') {
+                    if ($self.is(':checked')) {
                         $(`#otherOptionText${indexSuffix}`).prop('disabled', false); // enable textbox
                         $(`#mcqIsOtherOptionAnswer${indexSuffix}`).val('1');
                     } else {
@@ -210,10 +219,11 @@ function prepareContribQuestions() {
             $dropdown.addClass($dropdown[0].options[$dropdown[0].selectedIndex].className);
 
             $dropdown.on('change', function () {
-                $(this).removeClass('color_neutral');
-                $(this).removeClass('color-positive');
-                $(this).removeClass('color-negative');
-                $(this).addClass(this.options[this.selectedIndex].className);
+                const $self = $(this);
+                $self.removeClass('color_neutral');
+                $self.removeClass('color-positive');
+                $self.removeClass('color-negative');
+                $self.addClass(this.options[this.selectedIndex].className);
             });
         });
     });
@@ -262,16 +272,17 @@ function prepareMSQQuestions() {
                         + `input[name^="responsetext-${qnNum}-"][data-text]`); // includes 'other'
 
         $options.click(function () {
-            noneOfTheAboveOption = $(this).closest('table').find(
+            const $self = $(this);
+            noneOfTheAboveOption = $self.closest('table').find(
                                            'input[name^="responsetext-"][value=""]:not([data-text])');
-            const name = $(this).attr('name');
+            const name = $self.attr('name');
             const indexSuffix = name.substring(name.indexOf('-'));
 
             noneOfTheAboveOption.prop('checked', false);
 
             // 'other' option is clicked
-            if ($(this).attr('data-text') !== undefined) {
-                updateOtherOptionAttributes($(this), indexSuffix);
+            if ($self.attr('data-text') !== undefined) {
+                updateOtherOptionAttributes($self, indexSuffix);
             }
         });
     });
@@ -498,6 +509,12 @@ function updateConstSumMessageQn(qnNum) {
     let allNotNumbers = true;
     let answerSet = {};
 
+    function fillWithZeroIfEmpty(inputFieldElement) {
+        if (isNaN(parseInt(inputFieldElement.val(), 10))) {
+            inputFieldElement.val(0);
+        }
+    }
+
     function checkAndDisplayMessage(messageElement) {
         let message = '';
 
@@ -513,6 +530,23 @@ function updateConstSumMessageQn(qnNum) {
                 messageElement.addClass('text-color-green');
                 messageElement.removeClass('text-color-red');
                 messageElement.removeClass('text-color-blue');
+
+                /*
+                 * Once all the points are distributed,
+                 * look for empty Input fields and fill them with 0.
+                 */
+                if (distributeToRecipients) {
+                    for (let i = 0; i < numRecipients; i += 1) {
+                        const $inputFieldElement = $(`#${FEEDBACK_RESPONSE_TEXT}-${qnNum}-${i}-0`);
+                        fillWithZeroIfEmpty($inputFieldElement);
+                    }
+                } else {
+                    const recipientIndex = parseInt(messageElement.selector[messageElement.selector.length - 1], 10);
+                    for (let k = 0; k < numOptions; k += 1) {
+                        const $inputFieldElement = $(`#${FEEDBACK_RESPONSE_TEXT}-${qnNum}-${recipientIndex}-${k}`);
+                        fillWithZeroIfEmpty($inputFieldElement);
+                    }
+                }
             }
         } else if (remainingPoints > 0) {
             message = `${remainingPoints} points left to distribute.`;
@@ -596,6 +630,54 @@ function updateConstSumMessages() {
     }
 }
 
+function getMaxSelectableMsqChoices(qNum) {
+    const $input = $(`input[name="msqMaxSelectableChoices-${qNum}"]`);
+    return $input.prop('disabled') ? Number.MAX_SAFE_INTEGER : $input.val();
+}
+
+function getMinSelectableMsqChoices(qNum) {
+    const $input = $(`input[name="msqMinSelectableChoices-${qNum}"]`);
+    return $input.prop('disabled') ? 0 : $input.val();
+}
+
+function validateMsqQuestions() {
+    const msqQuestionNums = getQuestionTypeNumbers('MSQ');
+
+    // validate min/max selectable choices restrictions
+    for (let i = 0; i < msqQuestionNums.length; i += 1) {
+        const qNum = msqQuestionNums[i];
+        let recipientIndex = 0;
+        const maxSelectableChoices = getMaxSelectableMsqChoices(qNum);
+        const minSelectableChoices = getMinSelectableMsqChoices(qNum);
+
+        while ($(`input[name="responsetext-${qNum}-${recipientIndex}"]`).length !== 0) {
+            const numOfSelectedChoices = $(`input[name="responsetext-${qNum}-${recipientIndex}"]:checked`).length;
+
+            if (numOfSelectedChoices === 0) {
+                // student is allowed to skip/ignore question
+                recipientIndex += 1;
+                continue;
+            }
+
+            if (numOfSelectedChoices < minSelectableChoices) {
+                setStatusMessage(`Minimum selectable choices for question ${qNum} is ${minSelectableChoices}.`,
+                        StatusType.DANGER);
+                return false;
+            }
+
+            if (numOfSelectedChoices > maxSelectableChoices) {
+                setStatusMessage(`Maximum selectable choices for question ${qNum} is ${maxSelectableChoices}.`,
+                        StatusType.DANGER);
+                return false;
+            }
+
+            recipientIndex += 1;
+        }
+    }
+
+    return true;
+}
+
 function validateConstSumQuestions() {
     updateConstSumMessages();
 
@@ -633,10 +715,11 @@ function validateConstSumQuestions() {
  */
 function formatRecipientLists() {
     $('select.participantSelect').each(function () {
-        if (!$(this).hasClass('.newResponse')) {
+        const $self = $(this);
+        if (!$self.hasClass('.newResponse')) {
             // Remove options from existing responses
-            const questionNumber = $(this).attr('name').split('-')[1];
-            let selectedOption = $(this).find('option:selected').val();
+            const questionNumber = $self.attr('name').split('-')[1];
+            let selectedOption = $self.find('option:selected').val();
 
             if (selectedOption !== '') {
                 selectedOption = sanitizeForJs(selectedOption);
@@ -649,11 +732,12 @@ function formatRecipientLists() {
         }
 
         // Save initial data.
-        $(this).data('previouslySelected', $(this).val());
+        $self.data('previouslySelected', $(this).val());
     }).change(function () {
-        const questionNumber = $(this).attr('name').split('-')[1];
-        const lastSelectedOption = $(this).data('previouslySelected');
-        let curSelectedOption = $(this).find('option:selected').val();
+        const $self = $(this);
+        const questionNumber = $self.attr('name').split('-')[1];
+        const lastSelectedOption = $self.data('previouslySelected');
+        let curSelectedOption = $self.find('option:selected').val();
 
         if (lastSelectedOption !== '') {
             $(`select[name|=${FEEDBACK_RESPONSE_RECIPIENT}-${questionNumber}]`)
@@ -673,7 +757,7 @@ function formatRecipientLists() {
         }
 
         // Save new data
-        $(this).data('previouslySelected', $(this).val());
+        $self.data('previouslySelected', $self.val());
     });
 
     // Auto-select first valid option.
@@ -755,6 +839,30 @@ function validateAllAnswersHaveRecipient() {
     return isAllAnswersToMissingRecipientEmpty;
 }
 
+function isMinOptionsToBeRankedEnabled(qnNum) {
+    return !$(`#minOptionsToBeRanked-${qnNum}`).prop('disabled');
+}
+
+function isMaxOptionsToBeRankedEnabled(qnNum) {
+    return !$(`#maxOptionsToBeRanked-${qnNum}`).prop('disabled');
+}
+
+function getMinOptionsToBeRanked(qnNum) {
+    if (isMinOptionsToBeRankedEnabled(qnNum)) {
+        return parseInt($(`#minOptionsToBeRanked-${qnNum}`).val(), 10);
+    }
+
+    return Number.MAX_SAFE_INTEGER;
+}
+
+function getMaxOptionsToBeRanked(qnNum) {
+    if (isMaxOptionsToBeRankedEnabled(qnNum)) {
+        return parseInt($(`#maxOptionsToBeRanked-${qnNum}`).val(), 10);
+    }
+
+    return Number.MAX_SAFE_INTEGER;
+}
+
 function updateRankMessageQn(qnNum) {
     const isDistributingToRecipients = $(`#rankToRecipients-${qnNum}`).val() === 'true';
     const areDuplicateRanksAllowed = $(`#rankAreDuplicatesAllowed-${qnNum}`).val() === 'true';
@@ -766,11 +874,46 @@ function updateRankMessageQn(qnNum) {
     let areAllAnswersUnique;
     let allocatedRanks;
     let isAllOptionsRanked;
+    let isMinOptionsToBeRankedViolated;
+    let isMaxOptionsToBeRankedViolated;
+    let isMinOrMaxOptionsToBeRankedEnabled;
 
     function resetState() {
         allocatedRanks = {};
         areAllAnswersUnique = true;
         isAllOptionsRanked = true;
+        isMinOptionsToBeRankedViolated = false;
+        isMaxOptionsToBeRankedViolated = false;
+        isMinOrMaxOptionsToBeRankedEnabled = false;
+    }
+
+    function checkMinMaxRestrictions(questionNumber, recipientIndex) {
+        const selector = $(`#rankToRecipients-${questionNumber}`).val() === 'true'
+                ? `select[name^="responsetext-${questionNumber}-"]`
+                : `select[name="responsetext-${questionNumber}-${recipientIndex}"]`;
+        const rankedOptions = $(selector).filter(function () { return $(this).val() !== ''; }).length;
+
+        if (rankedOptions === 0) {
+            return;
+        }
+
+        if (isMinOptionsToBeRankedEnabled(qnNum)) {
+            isMinOrMaxOptionsToBeRankedEnabled = true;
+            const min = getMinOptionsToBeRanked(qnNum);
+
+            if (rankedOptions < min) {
+                isMinOptionsToBeRankedViolated = true;
+            }
+        }
+
+        if (isMaxOptionsToBeRankedEnabled(qnNum)) {
+            isMinOrMaxOptionsToBeRankedEnabled = true;
+            const max = getMaxOptionsToBeRanked(qnNum);
+
+            if (max < rankedOptions) {
+                isMaxOptionsToBeRankedViolated = true;
+            }
+        }
     }
 
     function updateRankMessagesInUpdatingRankMessageQn($messageElement) {
@@ -781,7 +924,17 @@ function updateRankMessageQn(qnNum) {
         if (!areDuplicateRanksAllowed && !areAllAnswersUnique) {
             message += ' The same rank should not be given multiple times. ';
             $messageElement.addClass('text-color-red');
-        } else if (!isAllOptionsRanked) {
+        } else if (isMinOptionsToBeRankedViolated) {
+            const min = getMinOptionsToBeRanked(qnNum);
+
+            message += ` You need to rank at least ${min} ${isDistributingToRecipients ? 'recipients. ' : 'options. '}`;
+            $messageElement.addClass('text-color-red');
+        } else if (isMaxOptionsToBeRankedViolated) {
+            const max = getMaxOptionsToBeRanked(qnNum);
+
+            message += ` Rank no more than ${max} ${isDistributingToRecipients ? 'recipients. ' : 'options. '}`;
+            $messageElement.addClass('text-color-red');
+        } else if (!isAllOptionsRanked && !isMinOrMaxOptionsToBeRankedEnabled) {
             message = `Please rank the above ${isDistributingToRecipients ? 'recipients. '
                                                                              : 'options. '}`;
             $messageElement.addClass('text-color-blue');
@@ -817,6 +970,8 @@ function updateRankMessageQn(qnNum) {
                 $(this).removeClass('color_neutral');
             }
         });
+
+        checkMinMaxRestrictions(questionNumber, recipientIndex);
     }
 
     if (isDistributingToRecipients) {
@@ -919,8 +1074,27 @@ function hasWarningMessage() {
     return $(WARNING_STATUS_MESSAGE).length;
 }
 
+function isSessionClosingSoon() {
+    const endTimeData = $(END_TIME).data('end-time');
+    if (!endTimeData) {
+        return false;
+    }
+    const endDate = new Date(endTimeData);
+    const currentDate = new Date();
+    const remainingTime = endDate - currentDate;
+    return remainingTime <= MS_IN_FIFTEEN_MINUTES && remainingTime > 0;
+}
+
 function getWarningMessage() {
     return $(WARNING_STATUS_MESSAGE).html().trim();
+}
+
+function hasSuccessMessage() {
+    return $(SUCCESS_STATUS_MESSAGE).length;
+}
+
+function getSuccessMessage() {
+    return $(SUCCESS_STATUS_MESSAGE).html().trim();
 }
 
 function showModalWarningIfSessionClosed() {
@@ -929,6 +1103,17 @@ function showModalWarningIfSessionClosed() {
     }
 }
 
+function showModalWarningIfSessionClosingSoon() {
+    if (isSessionClosingSoon()) {
+        showModalAlert(SESSION_CLOSING_HEADER, SESSION_CLOSING_MESSAGE, null, StatusType.WARNING);
+    }
+}
+
+function showModalSuccessIfResponsesSubmitted() {
+    if (hasSuccessMessage()) {
+        showModalAlert(getSuccessMessage(), RESPONSES_SUCCESSFULLY_SUBMITTED, null, StatusType.SUCCESS);
+    }
+}
 /**
  * Updates the length of the textArea
  * @param textAreaId - Id of text area for which char are to be counted
@@ -963,10 +1148,13 @@ $(document).ready(() => {
     if (typeof richTextEditorBuilder !== 'undefined') {
         $.each(textFields, (i, textField) => {
             const id = $(textField).attr('id');
+            const isSessionOpenData = $(textField).data('isSessionOpen');
+            const isSessionOpen = typeof (isSessionOpenData) === 'boolean' ? isSessionOpenData : true;
 
             /* eslint-disable camelcase */ // The property names are determined by external library (tinymce)
             richTextEditorBuilder.initEditor(`#${id}`, {
                 inline: true,
+                readonly: !isSessionOpen,
                 setup(ed) {
                     ed.on('keyup', function () {
                         updateTextQuestionWordsCount(id, $(textField).data('lengthTextId'), $(this).data('recommendedText'));
@@ -991,7 +1179,8 @@ $(document).ready(() => {
 
         const validationStatus = validateConstSumQuestions()
                                  && validateRankQuestions()
-                                 && validateAllAnswersHaveRecipient();
+                                 && validateAllAnswersHaveRecipient()
+                                 && validateMsqQuestions();
 
         updateMcqOtherOptionField();
         updateMsqOtherOptionField();
@@ -1004,7 +1193,7 @@ $(document).ready(() => {
 
             // disable button to prevent user from clicking submission button again
             const $submissionButton = $('#response_submit_button');
-            addLoadingIndicator($submissionButton, '');
+            addLoadingIndicator($submissionButton, 'Submitting ');
         }
     });
 
@@ -1060,6 +1249,10 @@ $(document).ready(() => {
     bindModerationHintButton();
 
     showModalWarningIfSessionClosed();
+
+    showModalWarningIfSessionClosingSoon();
+
+    showModalSuccessIfResponsesSubmitted();
 
     bindLinksInUnregisteredPage('[data-unreg].navLinks');
 });

@@ -24,6 +24,7 @@ public class InstructorFeedbackEditCopyActionTest extends BaseActionTest {
 
     @Override
     protected void prepareTestData() {
+        super.prepareTestData();
         dataBundle = loadDataBundle("/InstructorFeedbackEditCopyTest.json");
         removeAndRestoreDataBundle(dataBundle);
     }
@@ -96,44 +97,6 @@ public class InstructorFeedbackEditCopyActionTest extends BaseActionTest {
         editCopyData = (InstructorFeedbackEditCopyData) ajaxResult.data;
 
         assertEquals(Const.StatusMessages.FEEDBACK_SESSION_COPY_NONESELECTED, editCopyData.errorMessage);
-
-        ______TS("Failure case: copying from course with insufficient permission");
-        params = new String[] {
-                Const.ParamsNames.FEEDBACK_SESSION_NAME, fs.getFeedbackSessionName(),
-                Const.ParamsNames.COURSE_ID, "FeedbackEditCopy.CS2107",
-                Const.ParamsNames.COPIED_FEEDBACK_SESSION_NAME, "valid name",
-                Const.ParamsNames.COPIED_COURSES_ID, course.getId()
-        };
-
-        a = getAction(params);
-
-        try {
-            ajaxResult = getAjaxResult(a);
-            signalFailureToDetectException();
-        } catch (UnauthorizedAccessException uae) {
-            expectedString = "Course [FeedbackEditCopy.CS2107] is not accessible to instructor "
-                             + "[tmms.instr@course.tmt] for privilege [canmodifysession]";
-            assertEquals(expectedString, uae.getMessage());
-        }
-
-        ______TS("Failure case: copying to course with insufficient permission");
-        params = new String[] {
-                Const.ParamsNames.FEEDBACK_SESSION_NAME, fs.getFeedbackSessionName(),
-                Const.ParamsNames.COURSE_ID, course.getId(),
-                Const.ParamsNames.COPIED_FEEDBACK_SESSION_NAME, "valid name",
-                Const.ParamsNames.COPIED_COURSES_ID, "FeedbackEditCopy.CS2107"
-        };
-
-        a = getAction(params);
-
-        try {
-            ajaxResult = getAjaxResult(a);
-            signalFailureToDetectException();
-        } catch (UnauthorizedAccessException uae) {
-            expectedString = "Course [FeedbackEditCopy.CS2107] is not accessible to instructor "
-                             + "[tmms.instr@course.tmt] for privilege [canmodifysession]";
-            assertEquals(expectedString, uae.getMessage());
-        }
 
         ______TS("Failure case: copying non-existing fs");
         params = new String[] {
@@ -268,7 +231,7 @@ public class InstructorFeedbackEditCopyActionTest extends BaseActionTest {
 
         assertEquals("", editCopyData.redirectUrl);
 
-        expectedString = "\"\" is not acceptable to TEAMMATES as a/an feedback session name because it is empty. "
+        expectedString = "The field 'feedback session name' is empty. "
                          + "The value of a/an feedback session name should be no longer than 38 characters. "
                          + "It should not be empty.";
         assertEquals(expectedString, editCopyData.errorMessage);
@@ -276,8 +239,8 @@ public class InstructorFeedbackEditCopyActionTest extends BaseActionTest {
         expectedString =
                 "TEAMMATESLOG|||instructorFeedbackEditCopy|||instructorFeedbackEditCopy|||true|||"
                 + "Instructor|||Instructor 2|||FeedbackEditCopyinstructor2|||tmms.instr@gmail.tmt|||"
-                + "Servlet Action Failure : \"\" is not acceptable to TEAMMATES as a/an feedback session name "
-                + "because it is empty. The value of a/an feedback session name should be no longer than 38 characters. "
+                + "Servlet Action Failure : The field 'feedback session name' is empty. The value of "
+                + "a/an feedback session name should be no longer than 38 characters. "
                 + "It should not be empty.|||/page/instructorFeedbackEditCopy";
         AssertHelper.assertLogMessageEquals(expectedString, a.getLogMessage());
 
@@ -297,7 +260,7 @@ public class InstructorFeedbackEditCopyActionTest extends BaseActionTest {
 
         assertEquals("", editCopyData.redirectUrl);
 
-        expectedString = "\"\" is not acceptable to TEAMMATES as a/an feedback session name because it is empty. "
+        expectedString = "The field 'feedback session name' is empty. "
                          + "The value of a/an feedback session name should be no longer than 38 characters. "
                          + "It should not be empty.";
         assertEquals(expectedString, editCopyData.errorMessage);
@@ -305,8 +268,8 @@ public class InstructorFeedbackEditCopyActionTest extends BaseActionTest {
         expectedString =
                 "TEAMMATESLOG|||instructorFeedbackEditCopy|||instructorFeedbackEditCopy|||true|||"
                 + "Instructor|||Instructor 2|||FeedbackEditCopyinstructor2|||tmms.instr@gmail.tmt|||"
-                + "Servlet Action Failure : \"\" is not acceptable to TEAMMATES as a/an feedback session name "
-                + "because it is empty. The value of a/an feedback session name should be no longer than 38 characters. "
+                + "Servlet Action Failure : The field 'feedback session name' is empty. The value of "
+                + "a/an feedback session name should be no longer than 38 characters. "
                 + "It should not be empty.|||/page/instructorFeedbackEditCopy";
         AssertHelper.assertLogMessageEquals(expectedString, a.getLogMessage());
 
@@ -326,7 +289,7 @@ public class InstructorFeedbackEditCopyActionTest extends BaseActionTest {
 
         assertEquals("", editCopyData.redirectUrl);
 
-        expectedString = "\"\" is not acceptable to TEAMMATES as a/an feedback session name because it is empty. "
+        expectedString = "The field 'feedback session name' is empty. "
                          + "The value of a/an feedback session name should be no longer than 38 characters. "
                          + "It should not be empty.";
         assertEquals(expectedString, editCopyData.errorMessage);
@@ -334,8 +297,8 @@ public class InstructorFeedbackEditCopyActionTest extends BaseActionTest {
         expectedString =
                 "TEAMMATESLOG|||instructorFeedbackEditCopy|||instructorFeedbackEditCopy|||true|||"
                 + "Instructor|||Instructor 2|||FeedbackEditCopyinstructor2|||tmms.instr@gmail.tmt|||"
-                + "Servlet Action Failure : \"\" is not acceptable to TEAMMATES as a/an feedback session name "
-                + "because it is empty. The value of a/an feedback session name should be no longer than 38 characters. "
+                + "Servlet Action Failure : The field 'feedback session name' is empty. The value of "
+                + "a/an feedback session name should be no longer than 38 characters. "
                 + "It should not be empty.|||/page/instructorFeedbackEditCopy";
         AssertHelper.assertLogMessageEquals(expectedString, a.getLogMessage());
 
@@ -355,7 +318,7 @@ public class InstructorFeedbackEditCopyActionTest extends BaseActionTest {
 
         assertEquals("", editCopyData.redirectUrl);
 
-        expectedString = "\"\" is not acceptable to TEAMMATES as a/an feedback session name because it is empty. "
+        expectedString = "The field 'feedback session name' is empty. "
                          + "The value of a/an feedback session name should be no longer than 38 characters. "
                          + "It should not be empty.";
         assertEquals(expectedString, editCopyData.errorMessage);
@@ -363,8 +326,8 @@ public class InstructorFeedbackEditCopyActionTest extends BaseActionTest {
         expectedString =
                 "TEAMMATESLOG|||instructorFeedbackEditCopy|||instructorFeedbackEditCopy|||true|||"
                 + "Instructor|||Instructor 2|||FeedbackEditCopyinstructor2|||tmms.instr@gmail.tmt|||"
-                + "Servlet Action Failure : \"\" is not acceptable to TEAMMATES as a/an feedback session name "
-                + "because it is empty. The value of a/an feedback session name should be no longer than 38 characters. "
+                + "Servlet Action Failure : The field 'feedback session name' is empty. The value of "
+                + "a/an feedback session name should be no longer than 38 characters. "
                 + "It should not be empty.|||/page/instructorFeedbackEditCopy";
         AssertHelper.assertLogMessageEquals(expectedString, a.getLogMessage());
 
@@ -413,6 +376,57 @@ public class InstructorFeedbackEditCopyActionTest extends BaseActionTest {
     @Override
     @Test
     protected void testAccessControl() throws Exception {
-        //TODO: implement this
+        String[] params = new String[]{
+                Const.ParamsNames.FEEDBACK_SESSION_NAME, "First feedback session",
+                Const.ParamsNames.COURSE_ID, "idOfTypicalCourse1",
+                Const.ParamsNames.COPIED_FEEDBACK_SESSION_NAME, "Session with valid name",
+                Const.ParamsNames.COPIED_COURSES_ID, "idOfTypicalCourse2",
+                Const.ParamsNames.COPIED_COURSES_ID, "idOfSampleCourse-demo"
+        };
+
+        verifyUnaccessibleWithoutModifySessionPrivilege(params);
+
+        InstructorAttributes instructor = dataBundle.instructors.get("teammates.test.instructor2");
+        String instructorId = instructor.googleId;
+        FeedbackSessionAttributes fs = dataBundle.feedbackSessions.get("openSession");
+        CourseAttributes course = dataBundle.courses.get("course");
+
+        gaeSimulation.loginAsInstructor(instructorId);
+
+        ______TS("Failure case: copying from course with insufficient permission");
+        params = new String[] {
+                Const.ParamsNames.FEEDBACK_SESSION_NAME, fs.getFeedbackSessionName(),
+                Const.ParamsNames.COURSE_ID, "FeedbackEditCopy.CS2107",
+                Const.ParamsNames.COPIED_FEEDBACK_SESSION_NAME, "valid name",
+                Const.ParamsNames.COPIED_COURSES_ID, course.getId()
+        };
+        InstructorFeedbackEditCopyAction a = getAction(params);
+        try {
+            a.executeAndPostProcess();
+            signalFailureToDetectException();
+        } catch (UnauthorizedAccessException uae) {
+            String expectedString = "Course [FeedbackEditCopy.CS2107] is not accessible to instructor "
+                             + "[tmms.instr@course.tmt] for privilege [canmodifysession]";
+            assertEquals(expectedString, uae.getMessage());
+        }
+
+        ______TS("Failure case: copying to course with insufficient permission");
+        params = new String[] {
+                Const.ParamsNames.FEEDBACK_SESSION_NAME, fs.getFeedbackSessionName(),
+                Const.ParamsNames.COURSE_ID, course.getId(),
+                Const.ParamsNames.COPIED_FEEDBACK_SESSION_NAME, "valid name",
+                Const.ParamsNames.COPIED_COURSES_ID, "FeedbackEditCopy.CS2107"
+        };
+
+        a = getAction(params);
+
+        try {
+            a.executeAndPostProcess();
+            signalFailureToDetectException();
+        } catch (UnauthorizedAccessException uae) {
+            String expectedString = "Course [FeedbackEditCopy.CS2107] is not accessible to instructor "
+                             + "[tmms.instr@course.tmt] for privilege [canmodifysession]";
+            assertEquals(expectedString, uae.getMessage());
+        }
     }
 }
